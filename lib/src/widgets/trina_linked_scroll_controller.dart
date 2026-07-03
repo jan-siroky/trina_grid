@@ -322,8 +322,19 @@ class _LinkedScrollPosition extends ScrollPositionWithSingleContext {
 
   // We override this method to make it public (overridden method is protected)
   @override
-  // ignore: unnecessary_overrides
   void updateUserScrollDirection(ScrollDirection value) {
+    // A linked position can be driven to mirror a peer's offset (via
+    // _LinkedScrollActivity.moveTo/jumpTo) while its own Scrollable is detached
+    // from the render tree — e.g. an offstage page or, on web, while the browser
+    // tab is backgrounded. Such a position still reports hasClients == true, but
+    // its context.notificationContext is null. In that state the framework's
+    // ScrollPosition.didUpdateScrollDirection dereferences notificationContext!
+    // and throws "Null check operator used on a null value". Skip the update
+    // when there is no notification context to dispatch to; the direction is
+    // recomputed on the next real scroll once the Scrollable is reattached.
+    if (context.notificationContext == null) {
+      return;
+    }
     super.updateUserScrollDirection(value);
   }
 
